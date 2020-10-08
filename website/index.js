@@ -25,9 +25,10 @@ function applyFilter(value) {
     if (filtered.length) {
         map.setFilter('points', [
             'match',
-            ['get', 'indirizzo'],
+            ['get', 'hash'],
             filtered.map(function (feature) {
-                return feature.properties.indirizzo;
+                console.log(feature.properties.nome, feature.properties.hash)
+                return feature.properties.hash;
             }),
             true,
             false
@@ -87,6 +88,11 @@ $( document ).ready(function() {
         console.log(response);
         var source = await response.json();
         console.log(source);
+        source.features = source.features.map((x) => {
+            // x.properties.hash = md5(`${x.properties.nome}-${x.properties.circoscrizione}`)
+            x.properties.hash = `${x.properties.nome}-${x.properties.circoscrizione}`
+            return x
+        })
         points = source.features;
 
 
@@ -123,7 +129,5 @@ $( document ).ready(function() {
             }
         );
 
-        
-  
     }); 
 });
