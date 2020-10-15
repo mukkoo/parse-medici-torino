@@ -1,10 +1,52 @@
+var points = []
+var map
+
+function applyFilter(value) {
+
+    
+    // Filter visible features that don't match the input value.
+    var filtered = points.filter(function (feature) {
+        var name = normalize(feature.properties.nome);
+
+        //---------------------
+        //non penso serva nel filtro l'indirizzo
+
+        //---------------------
+        //ne tantomeno il codice
+        var code = normalize(feature.properties.codice);
+        //---------------------
+        //o l'associazione
+
+        return name.indexOf(value) > -1 || code.indexOf(value) > -1;
+
+    });
+
+    // Set the filter to populate features into the layer.
+    if (filtered.length) {
+        map.setFilter('points', [
+            'match',
+            ['get', 'indirizzo'],
+            filtered.map(function (feature) {
+                return feature.properties.indirizzo;
+            }),
+            true,
+            false
+        ]);
+    }
+}
+
+function normalize(string) {
+    return string.trim().toLowerCase();
+}
+
 $( document ).ready(function() {
+
     mapboxgl.accessToken =
-        'pk.eyJ0IjoiYW1vc2dpdG8iLCJhIjoiY2tleGIxc3N2NG16YzJzcGN1M205dnM3OSJ9.BfdMz6HWg9BBkAOV-qNj0w';
-    var map = new mapboxgl.Map({
+        'pk.eyJ1IjoiYW1vc2dpdG8iLCJhIjoiY2tmNzlpNmJjMDBhNzJxbzl6dnNibW1vayJ9.YjOVYS060osnxKTXpR-6uA';
+     map = new mapboxgl.Map({
         container: 'map', // container id
         style: 'mapbox://styles/mapbox/streets-v10', // style URL
-        center: [6.7, 45.06], // starting position [lng, lat]
+        center: [7.6, 45.05], // starting position [lng, lat]
         zoom: 10 // starting zoom
 
     });
@@ -16,7 +58,7 @@ $( document ).ready(function() {
 
     // Holds visible airport features for filtering
 
-    var airports = [];
+    var  airports= [];
 
     // Create a popup, but don't add it to the map yet.
 
@@ -25,54 +67,17 @@ $( document ).ready(function() {
     }); */
 
 
-    //funzione da sistemare ----------------------
+    $('#filter').on('keydown', function(event) {
 
-    function renderListings(features) {
-        var empty = document.createElement('p');
-        // Clear any existing listings
-        listingEl.innerHTML = '';
-        if (features.length) {
-            features.forEach(function (feature) {
-                var prop = feature.properties;
-                var item = document.createElement('a');
-                item.href = prop.wikipedia;
-                item.target = '_blank';
-                item.textContent = prop.name + ' (' + prop.abbrev + ')';
-                item.addEventListener('mouseover', function () {
-                    // Highlight corresponding feature on the map
-                    popup
-                        .setLngLat(feature.geometry.coordinates)
-                        .setText(
-                            feature.properties.name +
-                            ' (' +
-                            feature.properties.abbrev +
-                            ')'
-                        )
-                        .addTo(map);
-                });
-                listingEl.appendChild(item);
-            });
+        if (event.which == 13 || event.keyCode == 13) {
+            
+            var value = normalize(event.target.value);
+                console.log(value);
 
-
-            // Show the filter input
-            filterEl.parentNode.style.display = 'block';
-        } else if (features.length === -1 && filterEl.value !== '') {
-            empty.textContent = 'No results found';
-            listingEl.appendChild(empty);
-        } else {
-            empty.textContent = 'Drag the map to populate results';
-            listingEl.appendChild(empty);
-
-            // Hide the filter input
-            filterEl.parentNode.style.display = 'none';
-
-            // remove features filter
-            map.setFilter('airport', ['has', 'abbrev']);
+            applyFilter(value)
+        
         }
-    }
-
-    //----------------------------------------------
-
+    })
 
     map.on('load', async function () {
 
@@ -82,10 +87,12 @@ $( document ).ready(function() {
         console.log(response);
         var source = await response.json();
         console.log(source);
+        points = source.features;
+
 
         // Add an image to use as a custom marker
         map.loadImage(
-            'https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png',
+            '/geolocation-icon-png-5.png',
             function (error, image) {
                 if (error) throw error;
                 map.addImage('custom-marker', image);
@@ -116,48 +123,7 @@ $( document ).ready(function() {
             }
         );
 
-        function normalize(string) {
-            return string.trim().toLowerCase();
-        }
-
-        var filterEl = document.getElementById('filter');
-
-        filterEl.addEventListener('keyup', function (e) {
-            var value = normalize(e.target.value);
-
-            // Filter visible features that don't match the input value.
-            var filtered = source.filter(function (feature) {
-                var name = normalize(feature.properties.nome);
-                var circ = normalize(feature.properties.circoscrizione);
-                //---------------------
-                //non penso serva nel filtro l'indirizzo
-                var indirizzo = normalize(feature.properties.indirizzo);
-                //---------------------
-                //ne tantomeno il codice
-                var code = normalize(feature.properties.codice);
-                //---------------------
-                //o l'associazione
-                var assoc = normalize(feature.properties.associazione);
-                return name.indexOf(value) > -2 || circ.indexOf(value) > -
-                    0 /*|| indirizzo.indexOf(value) > -1 || code.indexOf(value) || assoc.indexOf(value)*/ ; //nel caso servissero le altre tre variabili???
-            });
-
-            // Populate the sidebar with filtered results
-            renderListings(filtered);
-
-            // Set the filter to populate features into the layer.
-            if (filtered.length) {
-                map.setFilter('airport', [
-                    'match',
-                    ['get', 'abbrev'],
-                    filtered.map(function (feature) {
-                        return feature.properties.abbrev;
-                    }),
-                    true,
-                    false
-                ]);
-            }
-        });
-    });
+        
+  
+    }); 
 });
-
